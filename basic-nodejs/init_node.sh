@@ -3,36 +3,37 @@
 echo 'I am going to Initialize the project now'
 
 read -p "Project name: " name;
-version="0.0.1"
-description=""
-entryPoint="server.js"
-gitRepo=""
-author="Taylor Gagne"
-license=""
-private=""
 
+cat > package.json << EOF
+{
+  "name": "${name}",
+  "version": "0.0.1",
+  "main": "server.js",
+  "author": "Taylor Gagne",
+  "license": "MIT",
+  "scripts": {
+    "dev": "nodemon --exec babel-node server.js",
+    "test": "cross-env NODE_ENV=development mocha --watch --recursive 'test/**/*.test.js'",
+    "coverage": "cross-env NODE_ENV=development nyc --reporter=text yarn test"
+  },
+  "nyc": {
+    "all": true,
+    "include": [
+      "src/**/*.js"
+    ],
+    "exclude": [
+      "**/*.test.js"
+    ],
+    "excludeNodeModules": false
+  },
+  "devDependencies": {
 
-/usr/bin/expect <<!
-set timeout 1
-spawn yarn init
-expect "question name:"
-send "$name\r"
-expect "version:"
-send "$version\r"
-expect "description:"
-send "$description\r"
-expect "entry point:"
-send "$entryPoint\r"
-expect "git repository"
-send "$gitRepo\r"
-expect "author:"
-send "$author\r"
-expect "license:"
-send "$license\r"
-expect "private:"
-send "$private\r"
-expect eof
-!
+  },
+  "dependencies": {
+
+  }
+}
+EOF
 
 echo "Finished initializing package file"
 
@@ -41,6 +42,63 @@ echo "creating env file"
 cat > .env << EOF
 NODE_ENV    = development
 SERVER_PORT = 3000
+EOF
+
+echo "Creating eslint config file"
+
+cat > .eslintrc.json << EOF
+{
+    "env": {
+        "commonjs": true,
+        "es6": true,
+        "node": true
+    },
+    "extends": [
+        "google"
+    ],
+    "globals": {
+        "Atomics": "readonly",
+        "SharedArrayBuffer": "readonly"
+    },
+    "parserOptions": {
+        "ecmaVersion": 2018
+    },
+    "rules": {
+        "no-multi-spaces": 0,
+        "no-mixed-spaces-and-tabs": 0,
+        "no-tabs": "off",
+        "brace-style": ["error", "allman", { "allowSingleLine": true }],
+        "strict": 2,
+        "indent": ["error", 4, {"VariableDeclarator":  4}],
+        "key-spacing": [2, { "align": "colon" }],
+        "camelcase": "off",
+        "max-len": ["error", { "code": 200 }],
+        "consistent-return": "off",
+        "new-cap": "off",
+        "guard-for-in": "off",
+        "arrow-parens": "off",
+        "require-jsdoc": ["error", {
+            "require": {
+                "FunctionDeclaration": true,
+                "MethodDefinition": false,
+                "ClassDeclaration": false,
+                "ArrowFunctionExpression": false,
+                "FunctionExpression": false
+            }
+        }]
+    }
+}
+EOF
+
+echo " Creating babel entry file"
+
+cat > .babelrc << EOF
+{
+  "presets": [
+    "@babel/preset-env"
+  ]
+}
+
 EOF
 
 echo "env file has been create"
@@ -59,7 +117,6 @@ if (cluster.isMaster) {
     const numWorkers = require('os').cpus().length;
 
     logger.info('Master cluster setting up ' + numWorkers + ' workers...');
-    logger.info();
 
     for (let i = 0; i < numWorkers; i++) {
         cluster.fork();
@@ -73,9 +130,7 @@ if (cluster.isMaster) {
     cluster.on('exit', (worker, code, signal) => {
         let timeRef = Date.now();
         logger.info('Worker ' + worker.process.pid + ' died with code: ' + code + ', and signal: ' + signal);
-        logger.error();
         logger.info('Starting a new worker');
-        logger.info();
         cluster.fork();
     });
 } else {
@@ -117,7 +172,6 @@ if (cluster.isMaster) {
     const onListening = () => {
         const addr = server.address();
         const bind = typeof addr === "string" ? "pipe " + port : "port " + port;
-        logger.info();
     };
 
     const port = normalizePort(process.env.SERVER_PORT || 4000);
@@ -132,13 +186,28 @@ if (cluster.isMaster) {
 }
 EOF
 
+declare -a dirArr=("config" "controllers" "models" "routes" "services" "db")
+
+mkdir -p "test"
+
+cd test/
+
+echo $PWD
+
+for i in "${dirArr[@]}"
+do
+    mkdir "$i"
+done
+
+touch app.test.js
+
+cd ..
+
 mkdir -p "src"
 
 cd src/
 
 echo $PWD
-
-declare -a dirArr=("config" "controllers" "models" "routes" "services" "db")
 
 for i in "${dirArr[@]}"
 do
@@ -212,15 +281,15 @@ const alignColorsAndTime = winston.format.combine(winston.format.colorize({
     label: '[LOGGER]',
 }), winston.format.timestamp({
     format: 'YY-MM-DD HH:MM:SS',
-}), winston.format.printf((info) => ` ${info.label}  ${info.timestamp}  ${info.level} : ${info.message}`));
+}), winston.format.printf((info) => info.label + info.timestamp +  info.level + ' : ' + info.message));
 
 const appTimeStamp = winston.format.combine(winston.format.timestamp({
     format: 'YY-MM-DD HH:MM:SS',
-}), winston.format.printf((info) => `${info.timestamp}  ${info.level} : ${info.message}`));
+}), winston.format.printf((info) => info.timestamp  + info.level + ' : ' + info.message));
 
 const errorTimeStamp = winston.format.combine(winston.format.timestamp({
     format: 'YY-MM-DD HH:MM:SS',
-}), winston.format.printf((error) => `${error.timestamp}  ${error.level} : ${error.message}`));
+}), winston.format.printf((error) => error.timestamp + error.level + ' : '  + error.message));
 
 
 const config = {
@@ -247,22 +316,17 @@ const config = {
         },
     },
 };
-EOF
 
-#jsonScript= <<EOF
-#    "scripts": {
-#    "start": "nodemon --exec babel-node server.js"
-#    },
-#EOF
-#
-#sleep 10 jq -s add package.json "$jsonScript"
+export default config;
+
+EOF
 
 echo "Completed creating project structure..."
 
 echo "Starting to install packages needed..."
 
-yarn add @babel/core @babel/node @babel/preset-env nodemon --dev
+yarn add @babel/core @babel/node @babel/register @babel/preset-env mocha chai chai-as-promised cross-env eslint eslint-config-google nyc sinon nodemon --dev
 
-yarn add express body-parser morgan dotenv apollo-server-express graphql graphql-tools winston
+yarn add express body-parser morgan dotenv winston
 
 echo "Done Get to Work :)"
