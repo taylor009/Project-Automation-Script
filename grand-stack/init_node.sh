@@ -185,5 +185,28 @@ if (cluster.isMaster) {
 }
 EOF
 
-echo "Finished initializing package file"
+mkdir src
+
+mkdir test
+
+cd test/
+
+touch app.test.js
+
+mkdir src
+
+echo "Created project test structure"
+
+cd ..
+
+echo "Starting to install needed packages"
+
+yarn add @babel/core @babel/node @babel/register @babel/preset-env mocha chai chai-as-promised cross-env eslint eslint-config-google nyc sinon nodemon --dev
+
+yarn add yarn add express body-parser morgan dotenv apollo-server-express graphql graphql-tools winston
+
+
+
+
+
 
