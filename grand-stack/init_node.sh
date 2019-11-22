@@ -187,6 +187,93 @@ EOF
 
 mkdir src
 
+cd src/
+
+mkdir config
+
+cd config/
+
+declare -a fileArr=("config.js" "logger.js")
+
+for i in "${fileArr[@]}"
+do
+    touch "$i"
+done
+
+echo "Finished added config files!"
+
+echo "Adding some config code now"
+
+cat > logger.js <<EOF
+'use strict';
+import winston from 'winston';
+import config from './config';
+const logger = winston.createLogger({
+    transports: [
+        new (winston.transports.Console)(config.LOGGER_CONFIG.CONSOLE),
+        new (winston.transports.File)(config.LOGGER_CONFIG.APP_LOG_FILE),
+        new (winston.transports.File)(config.LOGGER_CONFIG.ERROR_LOG_FILE),
+    ],
+});
+if (process.env.NODE_ENV !== 'production')
+{
+    logger.add(new winston.transports.Console({
+        format: winston.format.simple(),
+    }));
+}
+export default logger;
+EOF
+
+cat > config.js <<EOF
+'use strict';
+import winston from 'winston';
+import path from 'path';
+const alignColorsAndTime = winston.format.combine(winston.format.colorize({
+    all: true,
+}), winston.format.label({
+    label: '[LOGGER]',
+}), winston.format.timestamp({
+    format: 'YY-MM-DD HH:MM:SS',
+}), winston.format.printf((info) => info.label + info.timestamp +  info.level + ' : ' + info.message));
+const appTimeStamp = winston.format.combine(winston.format.timestamp({
+    format: 'YY-MM-DD HH:MM:SS',
+}), winston.format.printf((info) => info.timestamp  + info.level + ' : ' + info.message));
+const errorTimeStamp = winston.format.combine(winston.format.timestamp({
+    format: 'YY-MM-DD HH:MM:SS',
+}), winston.format.printf((error) => error.timestamp + error.level + ' : '  + error.message));
+const config = {
+    LOGGER_CONFIG: {
+        APP_LOG_FILE: {
+            level           : 'info',
+            filename        : path.join('src/logs', 'app.log'),
+            handleExceptions: true,
+            json            : false,
+            maxsize         : 5242880,
+            maxFiles        : 5,
+            format          : winston.format.combine(appTimeStamp),
+        }, ERROR_LOG_FILE: {
+            level           : 'error',
+            filename        : path.join('src/logs', 'error.log'),
+            handleExceptions: true,
+            json            : true,
+            maxsize         : 5242880,
+            maxFiles        : 5,
+            colorize        : true,
+            format          : winston.format.combine(errorTimeStamp),
+        }, CONSOLE: {
+            level           : 'debug', handleExceptions: true, json            : false, format          : winston.format.combine(alignColorsAndTime),
+        },
+    },
+};
+export default config;
+EOF
+
+cd ..
+
+cd ..
+
+echo "Completed creating project structure..."
+
 mkdir test
 
 cd test/
@@ -203,7 +290,7 @@ echo "Starting to install needed packages"
 
 yarn add @babel/core @babel/node @babel/register @babel/preset-env mocha chai chai-as-promised cross-env eslint eslint-config-google nyc sinon nodemon --dev
 
-yarn add yarn add express body-parser morgan dotenv apollo-server-express graphql graphql-tools winston
+yarn add yarn add express body-parser morgan dotenv apollo-server-express graphql graphql-tools neo4j-graphql-js winston
 
 
 
