@@ -4,9 +4,11 @@ echo 'Initializing project now'
 
 read -p "Project name: " name;
 
-mkdir -p "~/${name}"
+mkdir -p "$HOME/${name}"
 
-cd "${name}"
+cd "$HOME/${name}"
+
+echo $(pwd)
 
 cat > package.json << EOF
 {
